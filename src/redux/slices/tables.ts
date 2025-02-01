@@ -1,22 +1,47 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from '../../utils/axios';
+import type { RootState } from '../store';
+
+interface Todo {
+  id: string;
+  task: string;
+  completed: boolean;
+  created_at: string;
+  priority: 'low' | 'medium' | 'high';
+}
 
 interface TableState {
-  items: any[];
+  todos: Todo[];
   loading: boolean;
   error: string | null;
 }
 
 const initialState: TableState = {
-  items: [],
+  todos: [],
   loading: false,
   error: null,
 };
 
-export const fetchTableData = createAsyncThunk(
-  'tables/fetchTableData',
-  async (tableName: string) => {
-    const response = await axios.get(`/${tableName}`);
+export const fetchTodos = createAsyncThunk(
+  'tables/fetchTodos',
+  async () => {
+    const response = await axios.get('/Todo');
+    return response.data.items || [];
+  }
+);
+
+export const addTodo = createAsyncThunk(
+  'tables/addTodo',
+  async (todo: Omit<Todo, 'id'>) => {
+    const response = await axios.post('/Todo', todo);
+    return response.data;
+  }
+);
+
+export const updateTodo = createAsyncThunk(
+  'tables/updateTodo',
+  async ({ id, data }: { id: string; data: Partial<Todo> }) => {
+    const response = await axios.patch(`/Todo/${id}`, data);
     return response.data;
   }
 );
@@ -24,28 +49,39 @@ export const fetchTableData = createAsyncThunk(
 const tablesSlice = createSlice({
   name: 'tables',
   initialState,
-  reducers: {
-    clearTableData: (state) => {
-      state.items = [];
-      state.error = null;
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchTableData.pending, (state) => {
+      // Fetch Todos
+      .addCase(fetchTodos.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchTableData.fulfilled, (state, action) => {
+      .addCase(fetchTodos.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload.items;
+        state.todos = action.payload;
       })
-      .addCase(fetchTableData.rejected, (state, action) => {
+      .addCase(fetchTodos.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to fetch data';
+        state.error = action.error.message || 'Failed to fetch todos';
+      })
+      // Add Todo
+      .addCase(addTodo.fulfilled, (state, action) => {
+        state.todos.push(action.payload);
+      })
+      // Update Todo
+      .addCase(updateTodo.fulfilled, (state, action) => {
+        const index = state.todos.findIndex(todo => todo.id === action.payload.id);
+        if (index !== -1) {
+          state.todos[index] = action.payload;
+        }
       });
   },
 });
 
-export const { clearTableData } = tablesSlice.actions;
+// Selectors
+export const selectTodos = (state: RootState) => state.tables.todos;
+export const selectLoading = (state: RootState) => state.tables.loading;
+export const selectError = (state: RootState) => state.tables.error;
+
 export default tablesSlice.reducer;
