@@ -1,55 +1,27 @@
-import { Theme } from "@radix-ui/themes";
-import "@radix-ui/themes/styles.css";
-import "./index.css";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { ThemeProvider } from "@/theme/theme-provider";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { Provider } from "react-redux";
-import { store } from "./redux/store.ts";
-import RootBoundary from "./components/errors/RootBoundary";
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import Layout from './layout';
+import RetroTodoApp from './pages';
+import NotFound from './pages/NotFound';
 
-import { Layout } from "./layout";
-import Index from "./pages/index";
-import NotFound from "./pages/NotFound";
-import { useTheme } from "./theme/use-theme";
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Layout />,
+    children: [
+      {
+        index: true,
+        element: <RetroTodoApp />,
+      },
+      {
+        path: '*',
+        element: <NotFound />,
+      },
+    ],
+  },
+]);
 
-
-const App = () => {
-  const { theme } = useTheme();
-
-  const router = createBrowserRouter([
-    {
-      path: "/",
-      element: (
-        <Layout showSidebar={false} showHeader={false} showFooter={false} />
-      ),
-      errorElement: <RootBoundary />,
-      children: [
-        {
-          index: true,
-          element: <Index />,
-        },
-        {
-          path: "*",
-          element: <NotFound />,
-        },
-      ],
-    },
-  ]);
-
-  return (
-    <Provider store={store}>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <Theme appearance={theme === "system" ? "light" : theme}>
-          <div className={theme}>
-            <SidebarProvider>
-              <RouterProvider router={router} />
-            </SidebarProvider>
-          </div>
-        </Theme>
-      </ThemeProvider>
-    </Provider>
-  );
-};
+function App() {
+  return <RouterProvider router={router} />;
+}
 
 export default App;
